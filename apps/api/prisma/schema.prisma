@@ -1,0 +1,123 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum CreatorType {
+  KOL
+  CLIPPER
+}
+
+enum Platform {
+  TIKTOK
+  YOUTUBE
+  INSTAGRAM
+}
+
+enum RateModel {
+  FLAT
+  PER_VIEW
+}
+
+enum SubmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PayoutStatus {
+  PENDING
+  PAID
+}
+
+model Agency {
+  id        String     @id @default(uuid())
+  name      String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  creators  Creator[]
+  campaigns Campaign[]
+}
+
+model Creator {
+  id             String        @id @default(uuid())
+  agencyId       String
+  agency         Agency        @relation(fields: [agencyId], references: [id])
+  name           String
+  type           CreatorType
+  platform       Platform
+  externalHandle String
+  followers      Int?
+  avgEngagementRate Float?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  submissions    Submission[]
+  scores         CreatorScore[]
+
+  @@index([agencyId])
+}
+
+model Campaign {
+  id           String       @id @default(uuid())
+  agencyId     String
+  agency       Agency       @relation(fields: [agencyId], references: [id])
+  name         String
+  brief        String?
+  budget       Float
+  rateModel    RateModel
+  flatRate     Float?
+  ratePerView  Float?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  submissions  Submission[]
+
+  @@index([agencyId])
+}
+
+model Submission {
+  id               String           @id @default(uuid())
+  campaignId       String
+  campaign         Campaign         @relation(fields: [campaignId], references: [id])
+  creatorId        String
+  creator          Creator          @relation(fields: [creatorId], references: [id])
+  contentUrl       String
+  externalContentId String
+  views            Int              @default(0)
+  likes            Int              @default(0)
+  comments         Int              @default(0)
+  status           SubmissionStatus @default(PENDING)
+  lastSyncedAt     DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  payout           Payout?
+
+  @@index([campaignId])
+  @@index([creatorId])
+}
+
+model Payout {
+  id           String       @id @default(uuid())
+  submissionId String       @unique
+  submission   Submission   @relation(fields: [submissionId], references: [id])
+  amount       Float
+  status       PayoutStatus @default(PENDING)
+  paidAt       DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+/// Phase 3 (vetting): computed creator score, recalculated as scoring logic matures.
+model CreatorScore {
+  id         String   @id @default(uuid())
+  creatorId  String
+  creator    Creator  @relation(fields: [creatorId], references: [id])
+  score      Float
+  breakdown  Json
+  computedAt DateTime @default(now())
+
+  @@index([creatorId])
+}
