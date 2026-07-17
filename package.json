@@ -1,0 +1,28 @@
+{
+  "name": "jengkol",
+  "version": "0.1.0",
+  "description": "Creator ops platform for KOL/clipper agencies — turborepo monorepo (apps/api + apps/web)",
+  "private": true,
+  "license": "UNLICENSED",
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "prepare": "husky",
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "test:e2e": "turbo run test:e2e",
+    "format": "prettier --write \"apps/*/{src,test,prisma}/**/*.{ts,tsx}\"",
+    "format:check": "prettier --check \"apps/*/{src,test,prisma}/**/*.{ts,tsx}\""
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^15.3.0",
+    "prettier": "^3.4.2",
+    "turbo": "^2.10.5"
+  },
+  "lint-staged": {
+    "apps/api/**/*.ts": ["pnpm --filter api exec eslint --fix", "prettier --write"],
+    "apps/web/**/*.{ts,tsx}": ["pnpm --filter web exec eslint --fix", "prettier --write"]
+  }
+}
