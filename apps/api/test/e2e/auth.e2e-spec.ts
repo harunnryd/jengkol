@@ -83,7 +83,7 @@ describe('auth (e2e, real Postgres, real HTTP)', () => {
       .get('/creators')
       .set('Authorization', `Bearer ${tokenB}`)
       .expect(200);
-    expect(ownList.body).toEqual([]);
+    expect(ownList.body.data).toEqual([]);
 
     await request(server)
       .get(`/creators/${creator.body.id}`)
