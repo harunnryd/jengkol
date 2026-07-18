@@ -43,7 +43,8 @@ Run just one app: `pnpm --filter api dev` / `pnpm --filter web dev`.
 ## Contributing
 
 Trunk-based development, small PRs, Conventional Commits — see
-[CONTRIBUTING.md](CONTRIBUTING.md). By participating you agree to the
+[CONTRIBUTING.md](CONTRIBUTING.md) (using an AI coding agent? see
+[AGENTS.md](AGENTS.md) too). By participating you agree to the
 [Code of Conduct](CODE_OF_CONDUCT.md). Found a security issue? See
 [SECURITY.md](SECURITY.md) instead of opening a public issue.
 
