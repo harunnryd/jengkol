@@ -1,5 +1,8 @@
 # jengkol
 
+[![CI](https://github.com/harunnryd/jengkol/actions/workflows/ci.yml/badge.svg)](https://github.com/harunnryd/jengkol/actions/workflows/ci.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+
 Creator ops platform for KOL/clipper agencies: replaces spreadsheet-based creator
 tracking, view-count sync, and payout calculation with a real backend — plus a dashboard
 frontend.
@@ -40,7 +43,8 @@ Run just one app: `pnpm --filter api dev` / `pnpm --filter web dev`.
 ## Contributing
 
 Trunk-based development, small PRs, Conventional Commits — see
-[CONTRIBUTING.md](CONTRIBUTING.md). Found a security issue? See
+[CONTRIBUTING.md](CONTRIBUTING.md). By participating you agree to the
+[Code of Conduct](CODE_OF_CONDUCT.md). Found a security issue? See
 [SECURITY.md](SECURITY.md) instead of opening a public issue.
 
 ## License

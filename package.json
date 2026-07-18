@@ -5,6 +5,10 @@
   "private": true,
   "license": "Apache-2.0",
   "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
   "scripts": {
     "prepare": "husky",
     "dev": "turbo run dev",
