@@ -1,5 +1,8 @@
 # Contributing
 
+Using an AI coding agent (Claude Code, Codex, Cursor, etc.) on this repo? See
+[AGENTS.md](AGENTS.md) first — everything below applies to it too.
+
 ## Workflow: trunk-based development
 
 - `main` is always releasable. No long-lived feature branches.
@@ -27,6 +30,9 @@ type(scope): description
 - `scope`: `api`, `web`, or omitted for repo-wide changes (tooling, docs, monorepo config)
 
 Examples: `feat(api): add campaign budget validation`, `fix(web): handle expired token on load`, `docs: update auth flow diagram`.
+
+No trailers (`Co-Authored-By`, `Signed-off-by`, etc.) unless a real second person
+actually paired on the change — an AI coding agent used as a tool is not a co-author.
 
 ## Before opening a PR
 
