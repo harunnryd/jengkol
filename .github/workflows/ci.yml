@@ -27,6 +27,9 @@ jobs:
 
       - run: pnpm lint
 
+      - name: web unit tests
+        run: pnpm --filter web test
+
   test:
     runs-on: ubuntu-latest
     services:

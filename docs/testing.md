@@ -20,3 +20,16 @@ pnpm --filter api test:eval     # real LLM calls — needs ANTHROPIC_API_KEYS/OP
   401 with no token, and — the one that matters — a second agency's user getting a plain
   404 instead of the first agency's creator data).
 - `test/eval/` — see [llm-vetting.md](./llm-vetting.md).
+
+## apps/web
+
+```bash
+pnpm --filter web test    # vitest + @testing-library/react
+```
+
+Smoke coverage only, not a full pyramid: `LoginPage.test.tsx` (submits and redirects),
+`CreatorsPage.test.tsx` (fetches and renders a list page), `ProtectedRoute.test.tsx`
+(redirects when unauthenticated, renders when a token is present). Each API module is
+mocked with `vi.mock` — no real backend calls. See
+[development-notes.md](./development-notes.md) for a Node/jsdom `localStorage` gotcha
+this suite works around.
