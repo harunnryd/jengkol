@@ -24,6 +24,15 @@ describe('vetting agent output quality (eval, real LLM calls)', () => {
       platform: 'YOUTUBE',
       followers: 500_000,
       avgEngagementRate: 0.08,
+      niche: ['beauty', 'skincare'],
+      subscriberCount: 500_000,
+      channelViewCount: 50_000_000,
+      channelAgeInDays: 1200,
+      avgViewsPerSubmission: 300_000,
+      viewsToSubscriberRatio: 0.6,
+      recentSubmissions: [
+        { title: '5 Skincare Myths Debunked', description: 'A calm, sourced explainer.' },
+      ],
     },
     clearlyBad: {
       name: 'Anonim Clickbait',
@@ -31,6 +40,18 @@ describe('vetting agent output quality (eval, real LLM calls)', () => {
       platform: 'TIKTOK',
       followers: 1_200,
       avgEngagementRate: 0.001,
+      niche: [],
+      subscriberCount: 1_200,
+      channelViewCount: 500,
+      channelAgeInDays: 20,
+      avgViewsPerSubmission: 3,
+      viewsToSubscriberRatio: 0.0025,
+      recentSubmissions: [
+        {
+          title: 'INSTANT RICH TRICK banks HATE this!!!',
+          description: 'Click link in bio now before it gets taken down',
+        },
+      ],
     },
     borderline: {
       name: 'Budi Santoso',
@@ -38,6 +59,13 @@ describe('vetting agent output quality (eval, real LLM calls)', () => {
       platform: 'YOUTUBE',
       followers: 20_000,
       avgEngagementRate: 0.02,
+      niche: ['lifestyle'],
+      subscriberCount: 20_000,
+      channelViewCount: 800_000,
+      channelAgeInDays: 400,
+      avgViewsPerSubmission: 8_000,
+      viewsToSubscriberRatio: 0.4,
+      recentSubmissions: [{ title: 'A day in my life', description: 'Vlog, nothing unusual.' }],
     },
   };
 

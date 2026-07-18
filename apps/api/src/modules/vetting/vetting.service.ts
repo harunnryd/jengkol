@@ -17,12 +17,45 @@ export class VettingService {
       throw new NotFoundException(`Creator ${creatorId} not found`);
     }
 
+    // Enough recent history for a stable per-creator average without an unbounded scan.
+    const submissions = await this.prisma.submission.findMany({
+      where: { creatorId },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    });
+
+    const avgViewsPerSubmission =
+      submissions.length > 0
+        ? submissions.reduce((sum, s) => sum + s.views, 0) / submissions.length
+        : 0;
+
+    const viewsToSubscriberRatio =
+      creator.subscriberCount && creator.subscriberCount > 0
+        ? avgViewsPerSubmission / creator.subscriberCount
+        : null;
+
+    const channelAgeInDays = creator.channelPublishedAt
+      ? Math.floor((Date.now() - creator.channelPublishedAt.getTime()) / (1000 * 60 * 60 * 24))
+      : null;
+
+    const recentSubmissions = submissions.slice(0, 3).map((s) => ({
+      title: s.title ?? '(no title synced yet)',
+      description: (s.description ?? '').slice(0, 300),
+    }));
+
     const result = await runVettingAgent(this.llmRouter, {
       name: creator.name,
       externalHandle: creator.externalHandle,
       platform: creator.platform,
       followers: creator.followers ?? 0,
       avgEngagementRate: creator.avgEngagementRate ?? 0,
+      niche: creator.niche,
+      subscriberCount: creator.subscriberCount ?? 0,
+      channelViewCount: creator.channelViewCount ? Number(creator.channelViewCount) : 0,
+      channelAgeInDays,
+      avgViewsPerSubmission,
+      viewsToSubscriberRatio,
+      recentSubmissions,
     });
 
     return this.prisma.creatorScore.create({
@@ -32,6 +65,7 @@ export class VettingService {
         breakdown: {
           heuristic: result.heuristic,
           llmAssessment: result.llmAssessment,
+          contextUsed: result.contextUsed,
         } as unknown as Prisma.InputJsonValue,
       },
     });
