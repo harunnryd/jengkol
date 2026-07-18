@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Creator ops platform for KOL/clipper agencies — turborepo monorepo (apps/api + apps/web)",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "Apache-2.0",
   "packageManager": "pnpm@9.15.0",
   "scripts": {
     "prepare": "husky",

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Creator ops platform API: KOL/clipper tracking, submission view sync, and payout engine for influencer marketing agencies",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "Apache-2.0",
   "scripts": {
     "build": "nest build && tsc-alias -p tsconfig.json",
     "start": "nest start",
