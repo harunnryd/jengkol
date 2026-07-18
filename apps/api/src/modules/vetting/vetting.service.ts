@@ -11,8 +11,8 @@ export class VettingService {
     private readonly llmRouter: LlmRouterService,
   ) {}
 
-  async scoreCreator(creatorId: string) {
-    const creator = await this.prisma.creator.findUnique({ where: { id: creatorId } });
+  async scoreCreator(agencyId: string, creatorId: string) {
+    const creator = await this.prisma.creator.findFirst({ where: { id: creatorId, agencyId } });
     if (!creator) {
       throw new NotFoundException(`Creator ${creatorId} not found`);
     }
@@ -37,7 +37,11 @@ export class VettingService {
     });
   }
 
-  history(creatorId: string) {
+  async history(agencyId: string, creatorId: string) {
+    const creator = await this.prisma.creator.findFirst({ where: { id: creatorId, agencyId } });
+    if (!creator) {
+      throw new NotFoundException(`Creator ${creatorId} not found`);
+    }
     return this.prisma.creatorScore.findMany({
       where: { creatorId },
       orderBy: { computedAt: 'desc' },

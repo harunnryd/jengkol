@@ -7,31 +7,29 @@ import { UpdateCampaignDto } from './dto/update-campaign.dto';
 export class CampaignsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  create(dto: CreateCampaignDto) {
-    return this.prisma.campaign.create({ data: dto });
+  create(agencyId: string, dto: CreateCampaignDto) {
+    return this.prisma.campaign.create({ data: { ...dto, agencyId } });
   }
 
-  findAll(agencyId?: string) {
-    return this.prisma.campaign.findMany({
-      where: agencyId ? { agencyId } : undefined,
-    });
+  findAll(agencyId: string) {
+    return this.prisma.campaign.findMany({ where: { agencyId } });
   }
 
-  async findOne(id: string) {
-    const campaign = await this.prisma.campaign.findUnique({ where: { id } });
+  async findOne(agencyId: string, id: string) {
+    const campaign = await this.prisma.campaign.findFirst({ where: { id, agencyId } });
     if (!campaign) {
       throw new NotFoundException(`Campaign ${id} not found`);
     }
     return campaign;
   }
 
-  async update(id: string, dto: UpdateCampaignDto) {
-    await this.findOne(id);
+  async update(agencyId: string, id: string, dto: UpdateCampaignDto) {
+    await this.findOne(agencyId, id);
     return this.prisma.campaign.update({ where: { id }, data: dto });
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(agencyId: string, id: string) {
+    await this.findOne(agencyId, id);
     return this.prisma.campaign.delete({ where: { id } });
   }
 }

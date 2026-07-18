@@ -55,6 +55,7 @@ export class TiktokProvider implements PlatformProvider {
           Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
+        timeout: 10_000,
       },
     );
 

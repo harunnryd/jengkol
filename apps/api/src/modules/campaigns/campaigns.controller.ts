@@ -1,34 +1,40 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
 import { CampaignsService } from './campaigns.service';
 import { CreateCampaignDto } from './dto/create-campaign.dto';
 import { UpdateCampaignDto } from './dto/update-campaign.dto';
+import { CurrentUser } from '@/modules/auth/current-user.decorator';
+import { CurrentUserContext } from '@/modules/auth/auth.types';
 
 @Controller('campaigns')
 export class CampaignsController {
   constructor(private readonly campaignsService: CampaignsService) {}
 
   @Post()
-  create(@Body() dto: CreateCampaignDto) {
-    return this.campaignsService.create(dto);
+  create(@Body() dto: CreateCampaignDto, @CurrentUser() user: CurrentUserContext) {
+    return this.campaignsService.create(user.agencyId, dto);
   }
 
   @Get()
-  findAll(@Query('agencyId') agencyId?: string) {
-    return this.campaignsService.findAll(agencyId);
+  findAll(@CurrentUser() user: CurrentUserContext) {
+    return this.campaignsService.findAll(user.agencyId);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.campaignsService.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() user: CurrentUserContext) {
+    return this.campaignsService.findOne(user.agencyId, id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateCampaignDto) {
-    return this.campaignsService.update(id, dto);
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateCampaignDto,
+    @CurrentUser() user: CurrentUserContext,
+  ) {
+    return this.campaignsService.update(user.agencyId, id, dto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.campaignsService.remove(id);
+  remove(@Param('id') id: string, @CurrentUser() user: CurrentUserContext) {
+    return this.campaignsService.remove(user.agencyId, id);
   }
 }

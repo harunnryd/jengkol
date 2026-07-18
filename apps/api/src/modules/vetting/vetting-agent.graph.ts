@@ -1,3 +1,4 @@
+import { ServiceUnavailableException } from '@nestjs/common';
 import { Annotation, StateGraph, START, END } from '@langchain/langgraph';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { CallbackHandler } from '@langfuse/langchain';
@@ -43,11 +44,22 @@ function computeHeuristic(creator: VettingCreatorInput): HeuristicBreakdown {
 
 function parseLlmAssessment(raw: string): LlmAssessment {
   const jsonMatch = raw.match(/\{[\s\S]*\}/);
-  const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
+  } catch {
+    throw new ServiceUnavailableException(
+      'Vetting agent received a non-JSON response from the LLM — try again',
+    );
+  }
+
+  const candidate = parsed as Record<string, unknown>;
+  const score = Number(candidate.qualitativeScore);
+
   return {
-    qualitativeScore: Math.max(0, Math.min(100, Number(parsed.qualitativeScore ?? 0))),
-    reasoning: String(parsed.reasoning ?? ''),
-    redFlags: Array.isArray(parsed.redFlags) ? parsed.redFlags.map(String) : [],
+    qualitativeScore: Number.isFinite(score) ? Math.max(0, Math.min(100, score)) : 0,
+    reasoning: typeof candidate.reasoning === 'string' ? candidate.reasoning : '',
+    redFlags: Array.isArray(candidate.redFlags) ? candidate.redFlags.map(String) : [],
   };
 }
 

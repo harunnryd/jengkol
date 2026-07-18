@@ -81,6 +81,12 @@ export class LlmRouterService {
    * it rotates to the next key, then the next provider, until one succeeds or every
    * configured key has failed. Non-retryable errors (e.g. a bad prompt) bubble up
    * immediately instead of burning through every key.
+   *
+   * Known limitation: `provider.keyIndex` is shared mutable state read-then-incremented
+   * before the `await` below, so concurrent calls can interleave and briefly break the
+   * round-robin fairness guarantee (two concurrent requests could land on the same key).
+   * Not fixed here — this is a low-throughput endpoint and a real fix needs a mutex/queue
+   * that isn't worth the added complexity at this scale.
    */
   async invokeWithFallback<T>(fn: (model: ChatModelLike) => Promise<T>): Promise<T> {
     if (this.providers.length === 0) {

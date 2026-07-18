@@ -40,6 +40,7 @@ export class YoutubeProvider implements PlatformProvider {
           id: externalId,
           key: apiKey,
         },
+        timeout: 10_000,
       },
     );
 

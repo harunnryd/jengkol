@@ -9,8 +9,10 @@ export class ReportingService {
    * Phase 1 data, exposed as a client-facing rollup — becomes the Phase 4
    * white-label deliverable once branding/access-control is layered on top.
    */
-  async campaignSummary(campaignId: string) {
-    const campaign = await this.prisma.campaign.findUnique({ where: { id: campaignId } });
+  async campaignSummary(agencyId: string, campaignId: string) {
+    const campaign = await this.prisma.campaign.findFirst({
+      where: { id: campaignId, agencyId },
+    });
     if (!campaign) {
       throw new NotFoundException(`Campaign ${campaignId} not found`);
     }

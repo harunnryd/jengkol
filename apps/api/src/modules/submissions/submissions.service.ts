@@ -14,18 +14,34 @@ export class SubmissionsService {
     private readonly payouts: PayoutsService,
   ) {}
 
-  create(dto: CreateSubmissionDto) {
+  async create(agencyId: string, dto: CreateSubmissionDto) {
+    const [campaign, creator] = await Promise.all([
+      this.prisma.campaign.findFirst({ where: { id: dto.campaignId, agencyId } }),
+      this.prisma.creator.findFirst({ where: { id: dto.creatorId, agencyId } }),
+    ]);
+    if (!campaign) {
+      throw new NotFoundException(`Campaign ${dto.campaignId} not found`);
+    }
+    if (!creator) {
+      throw new NotFoundException(`Creator ${dto.creatorId} not found`);
+    }
+
     return this.prisma.submission.create({ data: dto });
   }
 
-  findAll(campaignId?: string) {
+  findAll(agencyId: string, campaignId?: string) {
     return this.prisma.submission.findMany({
-      where: campaignId ? { campaignId } : undefined,
+      where: {
+        campaign: { agencyId },
+        ...(campaignId ? { campaignId } : {}),
+      },
     });
   }
 
-  async findOne(id: string) {
-    const submission = await this.prisma.submission.findUnique({ where: { id } });
+  async findOne(agencyId: string, id: string) {
+    const submission = await this.prisma.submission.findFirst({
+      where: { id, campaign: { agencyId } },
+    });
     if (!submission) {
       throw new NotFoundException(`Submission ${id} not found`);
     }
@@ -40,15 +56,17 @@ export class SubmissionsService {
   }
 
   /**
-   * Refresh view/like/comment counts from the source platform and recompute the payout.
-   * Called by the scheduled sync job and can also be triggered manually per submission.
+   * Refresh view/like/comment counts from the source platform and recompute the payout,
+   * in a single transaction so a crash between the two writes can't leave a stale payout.
+   * Called by the scheduled sync job (no agencyId, internal) and by the guarded HTTP
+   * endpoint (agencyId required, enforces tenant ownership).
    */
-  async syncMetrics(submissionId: string) {
+  async syncMetrics(submissionId: string, agencyId?: string) {
     const submission = await this.prisma.submission.findUnique({
       where: { id: submissionId },
-      include: { creator: true },
+      include: { creator: true, campaign: true },
     });
-    if (!submission) {
+    if (!submission || (agencyId && submission.campaign.agencyId !== agencyId)) {
       throw new NotFoundException(`Submission ${submissionId} not found`);
     }
 
@@ -57,17 +75,19 @@ export class SubmissionsService {
       submission.externalContentId,
     );
 
-    await this.prisma.submission.update({
-      where: { id: submissionId },
-      data: {
-        views: metrics.views,
-        likes: metrics.likes,
-        comments: metrics.comments,
-        lastSyncedAt: new Date(),
-      },
-    });
+    return this.prisma.$transaction(async (tx) => {
+      await tx.submission.update({
+        where: { id: submissionId },
+        data: {
+          views: metrics.views,
+          likes: metrics.likes,
+          comments: metrics.comments,
+          lastSyncedAt: new Date(),
+        },
+      });
 
-    return this.payouts.recalculate(submissionId);
+      return this.payouts.recalculate(submissionId, tx);
+    });
   }
 
   async syncAllPending() {

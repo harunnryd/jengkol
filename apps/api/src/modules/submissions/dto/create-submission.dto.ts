@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsString, IsUrl } from 'class-validator';
 
 export class CreateSubmissionDto {
   @IsString()
@@ -9,8 +9,7 @@ export class CreateSubmissionDto {
   @IsNotEmpty()
   creatorId!: string;
 
-  @IsString()
-  @IsNotEmpty()
+  @IsUrl()
   contentUrl!: string;
 
   @IsString()

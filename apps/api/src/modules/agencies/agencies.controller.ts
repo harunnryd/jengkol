@@ -1,23 +1,24 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Patch, UseGuards } from '@nestjs/common';
 import { AgenciesService } from './agencies.service';
-import { CreateAgencyDto } from './dto/create-agency.dto';
+import { UpdateAgencyDto } from './dto/update-agency.dto';
+import { CurrentUser } from '@/modules/auth/current-user.decorator';
+import { CurrentUserContext } from '@/modules/auth/auth.types';
+import { Roles } from '@/modules/auth/roles.decorator';
+import { RolesGuard } from '@/modules/auth/roles.guard';
 
 @Controller('agencies')
 export class AgenciesController {
   constructor(private readonly agenciesService: AgenciesService) {}
 
-  @Post()
-  create(@Body() dto: CreateAgencyDto) {
-    return this.agenciesService.create(dto);
+  @Get('me')
+  findOwn(@CurrentUser() user: CurrentUserContext) {
+    return this.agenciesService.findOwn(user.agencyId);
   }
 
-  @Get()
-  findAll() {
-    return this.agenciesService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.agenciesService.findOne(id);
+  @UseGuards(RolesGuard)
+  @Roles('OWNER')
+  @Patch('me')
+  updateOwn(@Body() dto: UpdateAgencyDto, @CurrentUser() user: CurrentUserContext) {
+    return this.agenciesService.updateOwn(user.agencyId, dto);
   }
 }

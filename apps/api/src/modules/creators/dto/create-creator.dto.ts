@@ -4,10 +4,6 @@ import { IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-valida
 export class CreateCreatorDto {
   @IsString()
   @IsNotEmpty()
-  agencyId!: string;
-
-  @IsString()
-  @IsNotEmpty()
   name!: string;
 
   @IsEnum(CreatorType)
