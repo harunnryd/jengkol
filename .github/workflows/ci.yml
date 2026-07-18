@@ -20,6 +20,9 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: generate prisma client
+        run: pnpm --filter api exec prisma generate
+
       - run: pnpm build
 
       - run: pnpm lint
@@ -55,6 +58,9 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
+
+      - name: generate prisma client
+        run: pnpm --filter api exec prisma generate
 
       - name: apply migrations
         run: pnpm --filter api exec prisma migrate deploy
