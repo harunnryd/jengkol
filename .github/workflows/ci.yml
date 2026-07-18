@@ -9,7 +9,7 @@ jobs:
   lint-and-build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: pnpm/action-setup@v4
 
@@ -45,7 +45,7 @@ jobs:
       JWT_SECRET: ci-test-secret-not-for-real-use-do-not-copy
       JWT_EXPIRES_IN: 7d
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: pnpm/action-setup@v4
 
