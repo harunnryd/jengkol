@@ -4,28 +4,38 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    open-pull-requests-limit: 5
+    # Major version bumps need a deliberate, reviewed migration (e.g. NestJS 10->11,
+    # ESLint 8->10 which drops legacy .eslintrc support entirely) — never auto-propose
+    # them. Minor/patch only, batched into as few PRs as possible.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
-      nestjs:
-        patterns:
-          - "@nestjs/*"
-      langchain:
-        patterns:
-          - "@langchain/*"
-          - "langchain"
-      langfuse:
-        patterns:
-          - "@langfuse/*"
-      opentelemetry:
-        patterns:
-          - "@opentelemetry/*"
-    open-pull-requests-limit: 10
+      production-dependencies:
+        dependency-type: "production"
+        update-types: ["minor", "patch"]
+      dev-dependencies:
+        dependency-type: "development"
+        update-types: ["minor", "patch"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+    open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    groups:
+      github-actions:
+        patterns: ["*"]
 
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
       interval: "weekly"
+    open-pull-requests-limit: 3
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
