@@ -2,6 +2,12 @@ export interface VideoMetrics {
   views: number;
   likes: number;
   comments: number;
+  /** Content metadata, when the platform's API returns it in the same call (YouTube). Undefined otherwise. */
+  title?: string;
+  description?: string;
+  publishedAt?: Date;
+  durationSeconds?: number;
+  tags?: string[];
 }
 
 export interface PlatformProvider {
