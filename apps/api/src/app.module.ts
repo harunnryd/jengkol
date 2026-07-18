@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { validateEnv } from './config/env.validation';
 import { PrismaModule } from './database/prisma.module';
+import { AuthModule } from './modules/auth/auth.module';
 import { AgenciesModule } from './modules/agencies/agencies.module';
 import { CreatorsModule } from './modules/creators/creators.module';
 import { CampaignsModule } from './modules/campaigns/campaigns.module';
@@ -20,6 +21,7 @@ import { ReportingModule } from './modules/reporting/reporting.module';
     }),
     ScheduleModule.forRoot(),
     PrismaModule,
+    AuthModule,
     AgenciesModule,
     CreatorsModule,
     CampaignsModule,
