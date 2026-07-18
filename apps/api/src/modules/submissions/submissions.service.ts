@@ -36,7 +36,12 @@ export class SubmissionsService {
       ...(campaignId ? { campaignId } : {}),
     };
     const [data, total] = await Promise.all([
-      this.prisma.submission.findMany({ where, skip: pagination.skip, take: pagination.take }),
+      this.prisma.submission.findMany({
+        where,
+        skip: pagination.skip,
+        take: pagination.take,
+        include: { payout: true, creator: true },
+      }),
       this.prisma.submission.count({ where }),
     ]);
     return { data, meta: buildPaginationMeta(pagination, total) };
