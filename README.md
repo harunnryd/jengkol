@@ -37,6 +37,12 @@ Run just one app: `pnpm --filter api dev` / `pnpm --filter web dev`.
 - [Testing](docs/testing.md) — unit/integration/e2e/eval pyramid
 - [Development notes](docs/development-notes.md) — build-tooling gotchas worth knowing before you touch config
 
+## Contributing
+
+Trunk-based development, small PRs, Conventional Commits — see
+[CONTRIBUTING.md](CONTRIBUTING.md). Found a security issue? See
+[SECURITY.md](SECURITY.md) instead of opening a public issue.
+
 ## License
 
-UNLICENSED — internal/proprietary for now.
+[Apache-2.0](LICENSE)
