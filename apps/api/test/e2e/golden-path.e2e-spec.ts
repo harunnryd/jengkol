@@ -3,6 +3,18 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '@/app.module';
 
+async function registerAndGetToken(
+  server: Parameters<typeof request>[0],
+  agencyName: string,
+): Promise<string> {
+  const email = `${agencyName.toLowerCase().replace(/[^a-z0-9]/g, '')}-${Date.now()}-${Math.random().toString(36).slice(2)}@e2e.test`;
+  const res = await request(server)
+    .post('/auth/register')
+    .send({ agencyName, email, password: 'password123' })
+    .expect(201);
+  return res.body.accessToken;
+}
+
 describe('golden path (e2e, real Postgres, real HTTP)', () => {
   let app: INestApplication;
 
@@ -19,13 +31,11 @@ describe('golden path (e2e, real Postgres, real HTTP)', () => {
 
   it('agency -> creator -> campaign -> submission -> payout -> reporting', async () => {
     const server = app.getHttpServer();
+    const token = await registerAndGetToken(server, 'E2E Agency');
+    const auth = (req: request.Test) => req.set('Authorization', `Bearer ${token}`);
 
-    const agency = await request(server).post('/agencies').send({ name: 'E2E Agency' }).expect(201);
-
-    const creator = await request(server)
-      .post('/creators')
+    const creator = await auth(request(server).post('/creators'))
       .send({
-        agencyId: agency.body.id,
         name: 'E2E Creator',
         type: 'CLIPPER',
         platform: 'YOUTUBE',
@@ -35,10 +45,8 @@ describe('golden path (e2e, real Postgres, real HTTP)', () => {
       })
       .expect(201);
 
-    const campaign = await request(server)
-      .post('/campaigns')
+    const campaign = await auth(request(server).post('/campaigns'))
       .send({
-        agencyId: agency.body.id,
         name: 'E2E Campaign',
         budget: 10_000_000,
         rateModel: 'PER_VIEW',
@@ -46,8 +54,7 @@ describe('golden path (e2e, real Postgres, real HTTP)', () => {
       })
       .expect(201);
 
-    const submission = await request(server)
-      .post('/submissions')
+    const submission = await auth(request(server).post('/submissions'))
       .send({
         campaignId: campaign.body.id,
         creatorId: creator.body.id,
@@ -56,14 +63,13 @@ describe('golden path (e2e, real Postgres, real HTTP)', () => {
       })
       .expect(201);
 
-    await request(server)
-      .post(`/payouts/${submission.body.id}/recalculate`)
-      .expect(201)
+    await auth(request(server).post(`/payouts/${submission.body.id}/recalculate`))
+      .expect(200)
       .expect((res: request.Response) => expect(res.body.amount).toBe(0));
 
-    const summary = await request(server)
-      .get(`/reporting/campaigns/${campaign.body.id}/summary`)
-      .expect(200);
+    const summary = await auth(
+      request(server).get(`/reporting/campaigns/${campaign.body.id}/summary`),
+    ).expect(200);
 
     expect(summary.body.campaignId).toBe(campaign.body.id);
     expect(summary.body.perCreator).toHaveLength(1);
@@ -72,29 +78,28 @@ describe('golden path (e2e, real Postgres, real HTTP)', () => {
 
   it('rejects a submission sync when no platform credentials are configured (honest failure, no fake data)', async () => {
     const server = app.getHttpServer();
+    const token = await registerAndGetToken(server, 'E2E No-Key Agency');
+    const auth = (req: request.Test) => req.set('Authorization', `Bearer ${token}`);
 
-    const agency = await request(server).post('/agencies').send({ name: 'E2E No-Key Agency' });
-    const creator = await request(server).post('/creators').send({
-      agencyId: agency.body.id,
+    const creator = await auth(request(server).post('/creators')).send({
       name: 'No Key Creator',
       type: 'CLIPPER',
       platform: 'YOUTUBE',
       externalHandle: '@nokey',
     });
-    const campaign = await request(server).post('/campaigns').send({
-      agencyId: agency.body.id,
+    const campaign = await auth(request(server).post('/campaigns')).send({
       name: 'No Key Campaign',
       budget: 1_000_000,
       rateModel: 'FLAT',
       flatRate: 100_000,
     });
-    const submission = await request(server).post('/submissions').send({
+    const submission = await auth(request(server).post('/submissions')).send({
       campaignId: campaign.body.id,
       creatorId: creator.body.id,
       contentUrl: 'https://youtube.com/watch?v=nokey',
       externalContentId: 'nokey',
     });
 
-    await request(server).post(`/submissions/${submission.body.id}/sync`).expect(503);
+    await auth(request(server).post(`/submissions/${submission.body.id}/sync`)).expect(503);
   });
 });
