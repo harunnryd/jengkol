@@ -1,6 +1,10 @@
 import { PrismaClient } from '@prisma/client';
+import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
+
+const SEED_OWNER_EMAIL = 'demo@jengkol.local';
+const SEED_OWNER_PASSWORD = 'password123';
 
 async function main() {
   const agency = await prisma.agency.upsert({
@@ -9,6 +13,17 @@ async function main() {
     create: {
       id: 'seed-agency',
       name: 'Demo Agency',
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { email: SEED_OWNER_EMAIL },
+    update: {},
+    create: {
+      agencyId: agency.id,
+      email: SEED_OWNER_EMAIL,
+      passwordHash: await bcrypt.hash(SEED_OWNER_PASSWORD, 10),
+      role: 'OWNER',
     },
   });
 
@@ -41,6 +56,7 @@ async function main() {
   });
 
   console.log(`seeded agency ${agency.id} with creator ${creator.id}`);
+  console.log(`log in with ${SEED_OWNER_EMAIL} / ${SEED_OWNER_PASSWORD}`);
 }
 
 main()

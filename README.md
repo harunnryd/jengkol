@@ -19,16 +19,19 @@ jengkol/
 
 ```bash
 pnpm install
-cp apps/api/.env.example apps/api/.env
+cp apps/api/.env.example apps/api/.env   # set a real JWT_SECRET before anything but local dev
 cp apps/web/.env.example apps/web/.env
 docker compose up -d              # local Postgres
 pnpm --filter api prisma:migrate  # applies schema, generates Prisma client
+pnpm --filter api db:seed         # optional: demo agency + creator + campaign + login
 pnpm dev                          # turbo run dev — boots both apps
 ```
 
 API on `PORT` (default 3000), web dashboard on `5173`. Run just one app with
 `pnpm --filter api dev` / `pnpm --filter web dev`. `pnpm build`/`pnpm test`/`pnpm lint`
 run across both packages via Turborepo; `pnpm --filter <api|web> <script>` targets one.
+`db:seed` prints demo login credentials (`demo@jengkol.local` / `password123`) — sign in
+with those on the web dashboard, or `POST /auth/register` for a fresh account.
 
 ## apps/api — NestJS backend
 
@@ -46,9 +49,36 @@ is still used for one-off scripts with no DI, like `db:seed`. Also: `nest-cli.js
 will make `tsc` think nothing changed right after the output directory was wiped, silently
 producing an empty `dist/`. Both gotchas cost real debugging time; don't reintroduce them.
 
+### Auth & multi-tenancy
+
+Every route is JWT-protected by default (`JwtAuthGuard` registered globally via
+`APP_GUARD` in `modules/auth/auth.module.ts`) — a new module can't forget to guard
+itself; routes opt out explicitly with `@Public()` (only `/auth/register` and
+`/auth/login` do). `POST /auth/register` creates an `Agency` + its first `User`
+(`role: OWNER`) together in one transaction; `POST /auth/login` returns a token for an
+existing user; `POST /auth/invite` (owner-only, via `@Roles('OWNER')` + `RolesGuard`)
+adds a `MEMBER` to the caller's own agency.
+
+**Every list/get/update/delete on every resource is scoped by the caller's `agencyId`
+from the JWT — never from a client-supplied field.** `Creator`/`Campaign` carry
+`agencyId` directly; `Submission`/`Payout` are scoped through their `Campaign` relation
+(`findFirst({ where: { id, campaign: { agencyId } } })`). A cross-tenant ID returns a
+plain 404, not the other agency's data — proved by
+`test/e2e/auth.e2e-spec.ts`'s "IDOR closed" case, not just asserted. `GET /agencies` and
+`POST /agencies` were removed entirely; agency creation only happens via
+`/auth/register`, and there's no legitimate reason for one agency to look up another —
+use `GET /agencies/me` / `PATCH /agencies/me` (owner-only) instead.
+
+`JWT_SECRET` is required (min 16 chars) and `.env.example` ships an obviously-fake dev
+value — generate a real one (`openssl rand -hex 32`) before deploying anywhere real.
+Tokens are long-lived (`JWT_EXPIRES_IN=7d` default) with no refresh-token rotation —
+fine for this stage, worth hardening before a real production launch.
+
 ### Modules
 
-- `agencies`, `creators`, `campaigns` — core CRUD (Phase 1)
+- `auth` — registration/login/invite, JWT strategy + global guard, `@Roles()` for
+  owner-only actions (see above)
+- `agencies`, `creators`, `campaigns` — core CRUD (Phase 1), all tenant-scoped
 - `submissions` — creator content submissions, with a cron job (`SubmissionsSyncService`,
   every 30 min) that pulls fresh view counts and recalculates payouts
 - `payouts` — payout calculation engine (`calculatePayout`), flat or per-view rate models
@@ -115,16 +145,19 @@ pnpm --filter api test:e2e      # full app + supertest, golden path over real HT
 pnpm --filter api test:eval     # real LLM calls — needs ANTHROPIC_API_KEYS/OPENAI_API_KEYS + OPENAI_API_KEY
 ```
 
-- `test/unit/` — pure logic, no I/O. `payout-calculator.spec.ts` (table-driven, `it.each`)
-  and `llm-router.spec.ts` (key rotation/fallback state machine, via a mocked `buildModel`
-  — no real API calls).
+- `test/unit/` — pure logic, no I/O. `payout-calculator.spec.ts` (table-driven, `it.each`),
+  `llm-router.spec.ts` (key rotation/fallback state machine, via a mocked `buildModel` —
+  no real API calls), and `auth.service.spec.ts` (register/login/password-hashing, with a
+  mocked PrismaService — no real DB).
 - `test/integration/` — Nest `TestingModule` + the real docker-compose Postgres.
   `payouts.integration.spec.ts` and `submissions.integration.spec.ts` (with
   `PlatformIntegrationsService` overridden by a fake, so it's real DB writes without a
   real platform API call).
-- `test/e2e/` — full `AppModule` + `supertest`, the golden path over real HTTP
-  (agency → creator → campaign → submission → payout → reporting), plus a check that a
-  submission sync honestly 503s without platform credentials.
+- `test/e2e/` — full `AppModule` + `supertest` over real HTTP. `golden-path.e2e-spec.ts`
+  (register → creator → campaign → submission → payout → reporting, plus the honest 503
+  without platform credentials) and `auth.e2e-spec.ts` (register, wrong-password login,
+  401 with no token, and — the one that matters — a second agency's user getting a plain
+  404 instead of the first agency's creator data).
 - `test/eval/` — runs the **real** vetting agent (real LLM calls) against fixture
   creators, scored with [`autoevals`](https://github.com/braintrustdata/autoevals)
   (`ClosedQA`) to check the reasoning is actually about brand-safety/fit, and that a
@@ -143,9 +176,11 @@ per-view rate) → `Submission` (one piece of content, one creator, one campaign
 
 ## apps/web — dashboard (Vite + React)
 
-Minimal starter scaffold, not the full ops dashboard UI: one page that fetches
-`GET /agencies` and lists them, proving the frontend↔backend wiring works
-(`src/api/client.ts`, `VITE_API_URL` in `.env`). Build the real dashboard screens on top
+Minimal starter scaffold, not the full ops dashboard UI: a login form (email/password →
+`POST /auth/login`, JWT stored in `localStorage`) and, once signed in, a page that fetches
+`GET /agencies/me` and shows the agency name — proving the auth + tenant-scoped
+frontend↔backend wiring works end to end (`src/api/client.ts`, `VITE_API_URL` in `.env`).
+No router, no registration UI, no token refresh — build the real dashboard screens on top
 of this as agency/campaign/creator management features are prioritized.
 
 ## Roadmap alignment
