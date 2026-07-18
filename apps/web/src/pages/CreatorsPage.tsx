@@ -52,6 +52,7 @@ export default function CreatorsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<CreatorInput>(emptyForm);
+  const [nicheText, setNicheText] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
 
   const load = () => {
@@ -71,6 +72,7 @@ export default function CreatorsPage() {
   const openCreateDialog = () => {
     setEditingId(null);
     setForm(emptyForm);
+    setNicheText('');
     setFormError(null);
     setDialogOpen(true);
   };
@@ -85,6 +87,7 @@ export default function CreatorsPage() {
       followers: creator.followers ?? undefined,
       avgEngagementRate: creator.avgEngagementRate ?? undefined,
     });
+    setNicheText(creator.niche.join(', '));
     setFormError(null);
     setDialogOpen(true);
   };
@@ -92,11 +95,15 @@ export default function CreatorsPage() {
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setFormError(null);
+    const niche = nicheText
+      .split(',')
+      .map((tag) => tag.trim())
+      .filter(Boolean);
     try {
       if (editingId) {
-        await updateCreator(editingId, form);
+        await updateCreator(editingId, { ...form, niche });
       } else {
-        await createCreator(form);
+        await createCreator({ ...form, niche });
       }
       setDialogOpen(false);
       load();
@@ -135,6 +142,7 @@ export default function CreatorsPage() {
                 <TableHead>Platform</TableHead>
                 <TableHead>Handle</TableHead>
                 <TableHead>Followers</TableHead>
+                <TableHead>Niche</TableHead>
                 <TableHead />
               </TableRow>
             </TableHeader>
@@ -146,6 +154,7 @@ export default function CreatorsPage() {
                   <TableCell>{creator.platform}</TableCell>
                   <TableCell>{creator.externalHandle}</TableCell>
                   <TableCell>{creator.followers ?? '—'}</TableCell>
+                  <TableCell>{creator.niche.length > 0 ? creator.niche.join(', ') : '—'}</TableCell>
                   <TableCell className="flex gap-2">
                     <Button variant="outline" size="sm" onClick={() => openEditDialog(creator)}>
                       Edit
@@ -158,7 +167,7 @@ export default function CreatorsPage() {
               ))}
               {creators.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground">
                     No creators yet.
                   </TableCell>
                 </TableRow>
@@ -257,6 +266,15 @@ export default function CreatorsPage() {
                     followers: e.target.value ? Number(e.target.value) : undefined,
                   })
                 }
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="niche">Niche (comma-separated)</Label>
+              <Input
+                id="niche"
+                placeholder="beauty, skincare"
+                value={nicheText}
+                onChange={(e) => setNicheText(e.target.value)}
               />
             </div>
             {formError && (

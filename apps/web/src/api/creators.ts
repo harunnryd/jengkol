@@ -13,6 +13,8 @@ export interface Creator {
   externalHandle: string;
   followers: number | null;
   avgEngagementRate: number | null;
+  niche: string[];
+  subscriberCount: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -24,6 +26,7 @@ export interface CreatorInput {
   externalHandle: string;
   followers?: number;
   avgEngagementRate?: number;
+  niche?: string[];
 }
 
 export function listCreators(page: number, limit = 20): Promise<Paginated<Creator>> {
