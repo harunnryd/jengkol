@@ -1,5 +1,5 @@
 import { CreatorType, Platform } from '@prisma/client';
-import { IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class CreateCreatorDto {
   @IsString()
@@ -23,4 +23,9 @@ export class CreateCreatorDto {
   @IsOptional()
   @IsNumber()
   avgEngagementRate?: number;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  niche?: string[];
 }

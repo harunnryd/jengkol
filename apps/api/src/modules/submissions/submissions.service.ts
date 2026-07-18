@@ -92,6 +92,27 @@ export class SubmissionsService {
           likes: metrics.likes,
           comments: metrics.comments,
           lastSyncedAt: new Date(),
+          // Content metadata doesn't change after upload — only persist it once. Gated on
+          // `title` (not `publishedAt`) so a sync that got a title but not a parseable
+          // publishedAt doesn't re-fetch metadata forever.
+          ...(submission.title === null
+            ? {
+                title: metrics.title,
+                description: metrics.description,
+                publishedAt: metrics.publishedAt,
+                durationSeconds: metrics.durationSeconds,
+                tags: metrics.tags ?? [],
+              }
+            : {}),
+        },
+      });
+
+      await tx.submissionMetricSnapshot.create({
+        data: {
+          submissionId,
+          views: metrics.views,
+          likes: metrics.likes,
+          comments: metrics.comments,
         },
       });
 

@@ -19,10 +19,31 @@ complexity at this scale.
 ## Vetting agent (Phase 3)
 
 A `@langchain/langgraph` `StateGraph` (`gatherProfile` → `llmAssess` → `combineScore`)
-blends the heuristic score (followers/engagement) with an LLM qualitative fit/red-flag
-assessment into the final `CreatorScore`. LLM output is parsed defensively — malformed
-JSON or non-numeric fields fail loudly (`ServiceUnavailableException`) or fall back to 0,
-never silently produce `NaN`.
+blends a heuristic score with an LLM qualitative fit/red-flag assessment into the final
+`CreatorScore`. LLM output is parsed defensively — malformed JSON or non-numeric fields
+fail loudly (`ServiceUnavailableException`) or fall back to 0, never silently produce
+`NaN`.
+
+**Heuristic** (`computeHeuristic` in `vetting-agent.graph.ts`) has three components,
+summing to 100: `followersComponent` (0-50), `engagementComponent` (0-30), and
+`authenticityComponent` (0-20) — the last one flags an anomalous views-to-subscriber
+ratio (near-zero across many posts suggests bought/fake followers; very high on a young
+channel suggests an outlier worth double-checking) but never drives the score to zero on
+its own; it biases the baseline, the LLM does the actual judgment call.
+
+**LLM input** (`vetting.service.ts` `scoreCreator`) is no longer just two numbers.
+Before invoking the graph, it computes `avgViewsPerSubmission` and
+`viewsToSubscriberRatio` from the creator's own submission/snapshot history, derives
+`channelAgeInDays` from the synced channel-publish date, and pulls the 3 most recent
+submissions' real `title`/`description` — so the LLM reasons about actual content and
+real performance history, not an isolated followers/engagement snapshot. Fields default
+safely (`0`/`null`) for creators that haven't been through a
+`CreatorProfileSyncService` run yet (see [architecture.md](./architecture.md)) — an
+un-synced creator still scores, just without the authenticity/content signal.
+
+`CreatorScore.breakdown` now also stores `contextUsed` (the niche/subscriber/ratio/recent-
+titles actually shown to the LLM) alongside `heuristic` and `llmAssessment`, so a human
+reviewer can see *why* a score came out the way it did, not just the number.
 
 ## Langfuse (optional)
 

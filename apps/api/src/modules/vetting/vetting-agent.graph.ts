@@ -10,11 +10,19 @@ export interface VettingCreatorInput {
   platform: string;
   followers: number;
   avgEngagementRate: number;
+  niche: string[];
+  subscriberCount: number;
+  channelViewCount: number;
+  channelAgeInDays: number | null;
+  avgViewsPerSubmission: number;
+  viewsToSubscriberRatio: number | null;
+  recentSubmissions: Array<{ title: string; description: string }>;
 }
 
 export interface HeuristicBreakdown {
   followersComponent: number;
   engagementComponent: number;
+  authenticityComponent: number;
 }
 
 export interface LlmAssessment {
@@ -27,6 +35,14 @@ export interface VettingResult {
   score: number;
   heuristic: HeuristicBreakdown;
   llmAssessment: LlmAssessment;
+  contextUsed: {
+    niche: string[];
+    subscriberCount: number;
+    channelAgeInDays: number | null;
+    avgViewsPerSubmission: number;
+    viewsToSubscriberRatio: number | null;
+    recentSubmissionTitles: string[];
+  };
 }
 
 const VettingState = Annotation.Root({
@@ -36,10 +52,33 @@ const VettingState = Annotation.Root({
   finalScore: Annotation<number>,
 });
 
-function computeHeuristic(creator: VettingCreatorInput): HeuristicBreakdown {
-  const followersComponent = Math.min(1, creator.followers / 100_000) * 60;
-  const engagementComponent = Math.min(1, creator.avgEngagementRate / 0.1) * 40;
-  return { followersComponent, engagementComponent };
+/**
+ * Views-to-subscriber ratio outside roughly 0.05x-3x per video is worth surfacing —
+ * near-zero across many posts suggests bought/fake followers, unusually high (especially
+ * on a young channel) suggests a viral outlier worth double-checking, not necessarily a
+ * red flag. This is a cheap deterministic signal; the LLM does the actual judgment call
+ * using the real content it's shown, this component just biases the heuristic baseline.
+ */
+function computeAuthenticityComponent(creator: VettingCreatorInput): number {
+  const MAX = 20;
+  if (!creator.subscriberCount || creator.viewsToSubscriberRatio === null) {
+    return MAX;
+  }
+  const ratio = creator.viewsToSubscriberRatio;
+  if (ratio >= 0.05 && ratio <= 3) {
+    return MAX;
+  }
+  const distanceBelow = ratio < 0.05 ? 0.05 - ratio : 0;
+  const distanceAbove = ratio > 3 ? ratio - 3 : 0;
+  const penalty = Math.min(MAX, distanceBelow * 200 + distanceAbove * 2);
+  return Math.max(0, MAX - penalty);
+}
+
+export function computeHeuristic(creator: VettingCreatorInput): HeuristicBreakdown {
+  const followersComponent = Math.min(1, creator.followers / 100_000) * 50;
+  const engagementComponent = Math.min(1, creator.avgEngagementRate / 0.1) * 30;
+  const authenticityComponent = computeAuthenticityComponent(creator);
+  return { followersComponent, engagementComponent, authenticityComponent };
 }
 
 function parseLlmAssessment(raw: string): LlmAssessment {
@@ -63,6 +102,26 @@ function parseLlmAssessment(raw: string): LlmAssessment {
   };
 }
 
+function describeCreatorForLlm(creator: VettingCreatorInput): string {
+  const recentContent =
+    creator.recentSubmissions.length > 0
+      ? creator.recentSubmissions
+          .map((s, i) => `${i + 1}. "${s.title}" — ${s.description || '(no description)'}`)
+          .join('\n')
+      : 'No submission history yet.';
+
+  return (
+    `Creator: ${creator.name} (${creator.externalHandle}) on ${creator.platform}. ` +
+    `Followers: ${creator.followers}. Avg engagement rate: ${creator.avgEngagementRate}. ` +
+    `Niche tags: ${creator.niche.length > 0 ? creator.niche.join(', ') : 'none provided'}. ` +
+    `Subscribers: ${creator.subscriberCount || 'unknown'}. ` +
+    `Channel age: ${creator.channelAgeInDays ?? 'unknown'} days. ` +
+    `Average views per submission: ${creator.avgViewsPerSubmission.toFixed(0)}. ` +
+    `Views-to-subscriber ratio: ${creator.viewsToSubscriberRatio?.toFixed(2) ?? 'unknown'}.\n` +
+    `Recent content:\n${recentContent}`
+  );
+}
+
 /**
  * Builds the vetting StateGraph: heuristic baseline -> LLM qualitative assessment ->
  * blended final score. Kept as three explicit nodes (rather than one function) so
@@ -79,14 +138,16 @@ export function buildVettingGraph(llmRouter: LlmRouterService) {
         const response = await model.invoke([
           new SystemMessage(
             'You are a creator vetting analyst for an influencer marketing agency. ' +
-              'Given a creator profile, respond with ONLY a JSON object: ' +
+              'Given a creator profile — including their recent content titles/descriptions — ' +
+              'respond with ONLY a JSON object: ' +
               '{"qualitativeScore": number 0-100, "reasoning": string, "redFlags": string[]}. ' +
-              'qualitativeScore reflects brand-safety and campaign fit, not follower count.',
+              'qualitativeScore reflects brand-safety and campaign fit, not follower count. ' +
+              'Ground your reasoning in the actual content shown, not just the numbers — call ' +
+              'out anything in the titles/descriptions that raises brand-safety concerns, and ' +
+              'note if the views-to-subscriber ratio or channel age suggests inflated or fake ' +
+              'engagement.',
           ),
-          new HumanMessage(
-            `Creator: ${state.creator.name} (${state.creator.externalHandle}) on ${state.creator.platform}. ` +
-              `Followers: ${state.creator.followers}. Avg engagement rate: ${state.creator.avgEngagementRate}.`,
-          ),
+          new HumanMessage(describeCreatorForLlm(state.creator)),
         ]);
         return typeof response.content === 'string'
           ? response.content
@@ -97,7 +158,10 @@ export function buildVettingGraph(llmRouter: LlmRouterService) {
     })
     .addNode('combineScore', async (state) => ({
       finalScore:
-        0.6 * (state.heuristic.followersComponent + state.heuristic.engagementComponent) +
+        0.6 *
+          (state.heuristic.followersComponent +
+            state.heuristic.engagementComponent +
+            state.heuristic.authenticityComponent) +
         0.4 * state.llmAssessment.qualitativeScore,
     }))
     .addEdge(START, 'gatherProfile')
@@ -125,5 +189,13 @@ export async function runVettingAgent(
     score: result.finalScore,
     heuristic: result.heuristic,
     llmAssessment: result.llmAssessment,
+    contextUsed: {
+      niche: creator.niche,
+      subscriberCount: creator.subscriberCount,
+      channelAgeInDays: creator.channelAgeInDays,
+      avgViewsPerSubmission: creator.avgViewsPerSubmission,
+      viewsToSubscriberRatio: creator.viewsToSubscriberRatio,
+      recentSubmissionTitles: creator.recentSubmissions.map((s) => s.title),
+    },
   };
 }

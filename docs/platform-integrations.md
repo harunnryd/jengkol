@@ -3,9 +3,20 @@
 ## YouTube
 
 Works immediately once `YOUTUBE_API_KEY` is set. YouTube Data API v3's
-`videos.list?part=statistics` endpoint returns public view/like/comment counts for any
-video ID with just an API key (Google Cloud Console → enable "YouTube Data API v3" →
-create an API key). No OAuth needed.
+`videos.list?part=snippet,contentDetails,statistics` endpoint returns public view/like/
+comment counts *and* real content metadata (title, description, published date, tags,
+duration) for any video ID with just an API key (Google Cloud Console → enable "YouTube
+Data API v3" → create an API key) — one call, one quota unit, regardless of how many
+`part` values are requested, so this is a strictly free upgrade over fetching statistics
+alone. No OAuth needed.
+
+`YoutubeProvider.getChannelStats(handle)` additionally calls
+`channels.list?part=snippet,statistics&forHandle=<Creator.externalHandle>` to pull
+subscriber count, channel view count, and channel age — used by
+`CreatorProfileSyncService` (daily cron, YouTube creators only) to keep `Creator`'s
+channel-level fields fresh. See [llm-vetting.md](./llm-vetting.md) for why this matters:
+it's the real data the upgraded vetting agent reasons about, instead of two manually
+typed-in numbers.
 
 ## TikTok
 

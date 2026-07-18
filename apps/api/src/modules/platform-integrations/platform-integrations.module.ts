@@ -5,6 +5,6 @@ import { TiktokProvider } from './tiktok/tiktok.provider';
 
 @Module({
   providers: [PlatformIntegrationsService, YoutubeProvider, TiktokProvider],
-  exports: [PlatformIntegrationsService],
+  exports: [PlatformIntegrationsService, YoutubeProvider],
 })
 export class PlatformIntegrationsModule {}

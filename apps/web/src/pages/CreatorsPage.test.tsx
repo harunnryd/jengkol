@@ -15,6 +15,8 @@ vi.mock('@/api/creators', () => ({
         externalHandle: '@test',
         followers: 100,
         avgEngagementRate: 0.05,
+        niche: [],
+        subscriberCount: null,
         createdAt: '',
         updatedAt: '',
       },
