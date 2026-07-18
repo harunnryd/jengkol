@@ -11,6 +11,11 @@ updates:
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
+      # Pinned <0.5: 0.5.x is an ESM-only rewrite incompatible with our ESLint 8 legacy
+      # config (see apps/web/.eslintrc.cjs). A 0.4->0.5 bump is semver "minor", not
+      # "major", so the blanket major-version ignore above doesn't catch it.
+      - dependency-name: "eslint-plugin-react-refresh"
+        versions: [">=0.5.0"]
     groups:
       production-dependencies:
         dependency-type: "production"
