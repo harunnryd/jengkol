@@ -1,9 +1,10 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { CampaignsService } from './campaigns.service';
 import { CreateCampaignDto } from './dto/create-campaign.dto';
 import { UpdateCampaignDto } from './dto/update-campaign.dto';
 import { CurrentUser } from '@/modules/auth/current-user.decorator';
 import { CurrentUserContext } from '@/modules/auth/auth.types';
+import { PaginationQueryDto } from '@/common/dto/pagination-query.dto';
 
 @Controller('campaigns')
 export class CampaignsController {
@@ -15,8 +16,8 @@ export class CampaignsController {
   }
 
   @Get()
-  findAll(@CurrentUser() user: CurrentUserContext) {
-    return this.campaignsService.findAll(user.agencyId);
+  findAll(@Query() pagination: PaginationQueryDto, @CurrentUser() user: CurrentUserContext) {
+    return this.campaignsService.findAll(user.agencyId, pagination);
   }
 
   @Get(':id')

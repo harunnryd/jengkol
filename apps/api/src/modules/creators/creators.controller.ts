@@ -1,9 +1,10 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { CreatorsService } from './creators.service';
 import { CreateCreatorDto } from './dto/create-creator.dto';
 import { UpdateCreatorDto } from './dto/update-creator.dto';
 import { CurrentUser } from '@/modules/auth/current-user.decorator';
 import { CurrentUserContext } from '@/modules/auth/auth.types';
+import { PaginationQueryDto } from '@/common/dto/pagination-query.dto';
 
 @Controller('creators')
 export class CreatorsController {
@@ -15,8 +16,8 @@ export class CreatorsController {
   }
 
   @Get()
-  findAll(@CurrentUser() user: CurrentUserContext) {
-    return this.creatorsService.findAll(user.agencyId);
+  findAll(@Query() pagination: PaginationQueryDto, @CurrentUser() user: CurrentUserContext) {
+    return this.creatorsService.findAll(user.agencyId, pagination);
   }
 
   @Get(':id')

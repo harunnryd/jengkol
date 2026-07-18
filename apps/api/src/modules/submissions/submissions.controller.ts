@@ -3,6 +3,7 @@ import { SubmissionsService } from './submissions.service';
 import { CreateSubmissionDto } from './dto/create-submission.dto';
 import { CurrentUser } from '@/modules/auth/current-user.decorator';
 import { CurrentUserContext } from '@/modules/auth/auth.types';
+import { PaginationQueryDto } from '@/common/dto/pagination-query.dto';
 
 @Controller('submissions')
 export class SubmissionsController {
@@ -15,10 +16,11 @@ export class SubmissionsController {
 
   @Get()
   findAll(
+    @Query() pagination: PaginationQueryDto,
     @Query('campaignId') campaignId: string | undefined,
     @CurrentUser() user: CurrentUserContext,
   ) {
-    return this.submissionsService.findAll(user.agencyId, campaignId);
+    return this.submissionsService.findAll(user.agencyId, pagination, campaignId);
   }
 
   @Get(':id')

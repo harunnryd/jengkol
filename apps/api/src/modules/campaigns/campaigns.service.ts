@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/database/prisma.service';
+import { PaginationQueryDto, buildPaginationMeta } from '@/common/dto/pagination-query.dto';
 import { CreateCampaignDto } from './dto/create-campaign.dto';
 import { UpdateCampaignDto } from './dto/update-campaign.dto';
 
@@ -11,8 +12,13 @@ export class CampaignsService {
     return this.prisma.campaign.create({ data: { ...dto, agencyId } });
   }
 
-  findAll(agencyId: string) {
-    return this.prisma.campaign.findMany({ where: { agencyId } });
+  async findAll(agencyId: string, pagination: PaginationQueryDto) {
+    const where = { agencyId };
+    const [data, total] = await Promise.all([
+      this.prisma.campaign.findMany({ where, skip: pagination.skip, take: pagination.take }),
+      this.prisma.campaign.count({ where }),
+    ]);
+    return { data, meta: buildPaginationMeta(pagination, total) };
   }
 
   async findOne(agencyId: string, id: string) {

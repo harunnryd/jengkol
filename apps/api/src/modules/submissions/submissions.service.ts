@@ -2,6 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/database/prisma.service';
 import { PlatformIntegrationsService } from '@/modules/platform-integrations/platform-integrations.service';
 import { PayoutsService } from '@/modules/payouts/payouts.service';
+import { PaginationQueryDto, buildPaginationMeta } from '@/common/dto/pagination-query.dto';
 import { CreateSubmissionDto } from './dto/create-submission.dto';
 
 @Injectable()
@@ -29,13 +30,16 @@ export class SubmissionsService {
     return this.prisma.submission.create({ data: dto });
   }
 
-  findAll(agencyId: string, campaignId?: string) {
-    return this.prisma.submission.findMany({
-      where: {
-        campaign: { agencyId },
-        ...(campaignId ? { campaignId } : {}),
-      },
-    });
+  async findAll(agencyId: string, pagination: PaginationQueryDto, campaignId?: string) {
+    const where = {
+      campaign: { agencyId },
+      ...(campaignId ? { campaignId } : {}),
+    };
+    const [data, total] = await Promise.all([
+      this.prisma.submission.findMany({ where, skip: pagination.skip, take: pagination.take }),
+      this.prisma.submission.count({ where }),
+    ]);
+    return { data, meta: buildPaginationMeta(pagination, total) };
   }
 
   async findOne(agencyId: string, id: string) {

@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/database/prisma.service';
+import { PaginationQueryDto, buildPaginationMeta } from '@/common/dto/pagination-query.dto';
 import { CreateCreatorDto } from './dto/create-creator.dto';
 import { UpdateCreatorDto } from './dto/update-creator.dto';
 
@@ -11,8 +12,13 @@ export class CreatorsService {
     return this.prisma.creator.create({ data: { ...dto, agencyId } });
   }
 
-  findAll(agencyId: string) {
-    return this.prisma.creator.findMany({ where: { agencyId } });
+  async findAll(agencyId: string, pagination: PaginationQueryDto) {
+    const where = { agencyId };
+    const [data, total] = await Promise.all([
+      this.prisma.creator.findMany({ where, skip: pagination.skip, take: pagination.take }),
+      this.prisma.creator.count({ where }),
+    ]);
+    return { data, meta: buildPaginationMeta(pagination, total) };
   }
 
   async findOne(agencyId: string, id: string) {

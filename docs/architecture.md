@@ -19,8 +19,17 @@ Stack: NestJS + TypeScript, PostgreSQL via Prisma, OpenTelemetry (traces),
 work in both dev (`nest start --watch`) and the compiled build (`tsc-alias` rewrites them
 after `nest build`).
 
-CORS is enabled (`app.enableCors()` in `main.ts`) so `apps/web` on a different port/origin
-can call it directly in dev.
+CORS is restricted to `CORS_ORIGIN` (comma-separated list, defaults to
+`http://localhost:5173`) — never a wildcard by default. Set it to your real frontend
+origin(s) before deploying anywhere beyond local dev.
+
+### Pagination
+
+`GET /creators`, `GET /campaigns`, and `GET /submissions` take `?page` (default `1`) and
+`?limit` (default `20`, max `100`) query params and return
+`{ data: T[], meta: { page, limit, total, totalPages } }` rather than a bare array. Any
+new list endpoint should follow the same shape (`PaginationQueryDto` in
+`src/common/dto/pagination-query.dto.ts`) rather than returning an unbounded result set.
 
 ### Modules
 
