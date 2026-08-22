@@ -22,8 +22,8 @@
   "devDependencies": {
     "husky": "^9.1.7",
     "lint-staged": "^15.3.0",
-    "prettier": "^3.4.2",
-    "turbo": "^2.10.5"
+    "prettier": "^3.9.6",
+    "turbo": "^2.10.11"
   },
   "lint-staged": {
     "apps/api/**/*.ts": ["pnpm --filter api exec eslint --fix", "prettier --write"],
